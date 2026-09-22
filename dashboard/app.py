@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -13,7 +14,6 @@ import streamlit as st
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT_DIR))
 
-from src.database import engine
 from src.experiment_stats import analyze_binary_experiment
 from src.guardrails import analyze_guardrails
 from src.retention import (
@@ -336,12 +336,56 @@ st.markdown(
 
 @st.cache_data
 def load_data():
-    query = """
-    SELECT *
-    FROM analytics.fct_promotion_events
+    """
+    Use PostgreSQL locally when DATABASE_URL is available.
+    On Streamlit Community Cloud, use the bundled analytics snapshot.
     """
 
-    return pd.read_sql(query, engine)
+    snapshot_path = (
+        ROOT_DIR
+        / "data"
+        / "deploy"
+        / "fct_promotion_events.csv"
+    )
+
+    database_url = os.getenv("DATABASE_URL")
+
+    if database_url:
+        try:
+            from sqlalchemy import create_engine
+
+            engine = create_engine(database_url)
+
+            return pd.read_sql(
+                """
+                SELECT *
+                FROM analytics.fct_promotion_events
+                """,
+                engine,
+            )
+
+        except Exception:
+            st.warning(
+                "Live database unavailable. "
+                "Using the bundled analytics snapshot."
+            )
+
+    if not snapshot_path.exists():
+        st.error(
+            "TuneLift deployment dataset could not be found."
+        )
+        st.stop()
+
+    data = pd.read_csv(snapshot_path)
+
+    for column in ["start_date", "end_date"]:
+        if column in data.columns:
+            data[column] = pd.to_datetime(
+                data[column],
+                errors="coerce",
+            )
+
+    return data
 
 
 df = load_data()
