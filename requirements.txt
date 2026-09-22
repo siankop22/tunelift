@@ -1,0 +1,12 @@
+pandas
+numpy
+scipy
+statsmodels
+sqlalchemy
+psycopg2-binary
+faker
+streamlit
+plotly
+python-dotenv
+jupyter
+scikit-learn

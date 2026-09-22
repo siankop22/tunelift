@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: tunelift-postgres
+    environment:
+      POSTGRES_USER: tunelift
+      POSTGRES_PASSWORD: tunelift
+      POSTGRES_DB: tunelift
+    ports:
+      - "5432:5432"
+    volumes:
+      - tunelift_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  tunelift_postgres_data:
