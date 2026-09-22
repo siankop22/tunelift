@@ -14,6 +14,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT_DIR))
 
 from src.database import engine
+from src.experiment_stats import analyze_binary_experiment
 
 st.set_page_config(
     page_title="TuneLift",
@@ -427,6 +428,13 @@ incremental_streams = (
     absolute_lift * len(treatment)
 )
 
+experiment_stats = analyze_binary_experiment(
+    treatment_successes=int(treatment["streamed"].sum()),
+    treatment_n=len(treatment),
+    control_successes=int(control["streamed"].sum()),
+    control_n=len(control),
+)
+
 # =========================================================
 # CHART THEME
 # =========================================================
@@ -517,6 +525,55 @@ k6.metric(
 )
 
 # =========================================================
+# EXPERIMENT READOUT
+# =========================================================
+
+st.markdown("### Experiment Readout")
+
+readout_1, readout_2, readout_3, readout_4 = st.columns(4)
+
+readout_1.metric(
+    "Sample Size",
+    f"{experiment_stats['total_n']:,}",
+)
+
+readout_2.metric(
+    "P-value",
+    f"{experiment_stats['p_value']:.4f}",
+)
+
+readout_3.metric(
+    "95% Confidence Interval",
+    (
+        f"{experiment_stats['ci_lower']:.1%} "
+        f"to {experiment_stats['ci_upper']:.1%}"
+    ),
+)
+
+readout_4.metric(
+    "Statistical Result",
+    (
+        "Significant"
+        if experiment_stats["significant"]
+        else "Not Significant"
+    ),
+)
+
+if experiment_stats["significant"]:
+    st.success(
+        "The treatment and control stream rates are statistically "
+        "different at the 5% significance level. In this simulated "
+        "experiment, the observed promotion lift is unlikely to be "
+        "explained by random sampling variation alone."
+    )
+else:
+    st.warning(
+        "The experiment does not provide enough statistical evidence "
+        "to distinguish the observed treatment-control difference from "
+        "random sampling variation at the 5% significance level."
+    )
+
+# =========================================================
 # ONE COLLAPSIBLE METRIC GUIDE
 # =========================================================
 
@@ -588,6 +645,42 @@ with st.expander("How to Read These Metrics", expanded=False):
             have happened anyway.
             """
         )
+
+    st.markdown("""
+---
+
+#### P-value
+
+The p-value measures how surprising the observed treatment-control difference
+would be if promotion actually had no effect.
+
+A common threshold is **0.05**.
+
+- Below 0.05: the observed difference is considered statistically significant.
+- Above 0.05: there is not enough evidence to distinguish the difference from
+  random variation.
+
+#### 95% Confidence Interval
+
+The confidence interval shows a plausible range for the true treatment effect.
+
+For example:
+
+`4.8% to 8.1%`
+
+means the estimated increase in stream conversion is between about
+4.8 and 8.1 percentage points.
+
+If the interval does **not include 0**, that supports evidence of a difference
+between treatment and control.
+
+#### Sample Size
+
+The total number of observations included in the treatment and control groups.
+
+Larger experiments generally provide more precise estimates than very small
+experiments.
+""")
 
     st.info(
         "TuneLift also examines saves, skips, repeat listening, "
