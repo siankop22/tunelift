@@ -14,6 +14,10 @@ select
     e.repeat_stream,
     e.playlist_add,
 
+    coalesce(r.returned_7d, 0) as returned_7d,
+    coalesce(r.returned_14d, 0) as returned_14d,
+    coalesce(r.returned_30d, 0) as returned_30d,
+
     l.country,
     l.age,
     l.subscription_type,
@@ -33,6 +37,9 @@ select
     c.end_date
 
 from {{ ref('stg_experiment_events') }} e
+
+left join {{ ref('stg_retention_events') }} r
+    on e.impression_id = r.impression_id
 
 left join {{ ref('stg_listeners') }} l
     on e.listener_id = l.listener_id

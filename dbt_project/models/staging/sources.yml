@@ -11,3 +11,4 @@ sources:
       - name: tracks
       - name: campaigns
       - name: experiment_events
+      - name: retention_events

@@ -14,6 +14,10 @@ select
     repeat_stream,
     playlist_add,
 
+    returned_7d,
+    returned_14d,
+    returned_30d,
+
     country,
     age,
 

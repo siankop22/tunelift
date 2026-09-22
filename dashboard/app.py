@@ -15,6 +15,11 @@ sys.path.append(str(ROOT_DIR))
 
 from src.database import engine
 from src.experiment_stats import analyze_binary_experiment
+from src.guardrails import analyze_guardrails
+from src.retention import (
+    calculate_retention,
+    calculate_retention_lift,
+)
 from src.experiment_health import (
     experiment_power,
     minimum_detectable_effect,
@@ -460,6 +465,19 @@ mde = minimum_detectable_effect(
     ),
 )
 
+
+guardrail_results = analyze_guardrails(
+    filtered_df
+)
+
+retention_df = calculate_retention(
+    filtered_df
+)
+
+retention_lift_df = calculate_retention_lift(
+    filtered_df
+)
+
 # =========================================================
 # CHART THEME
 # =========================================================
@@ -655,6 +673,156 @@ instrumentation, or data collection.
     st.caption(
         f"SRM p-value: {srm_result['p_value']:.4f}"
     )
+
+# =========================================================
+# GUARDRAIL METRICS
+# =========================================================
+
+st.markdown("### Guardrail Metrics")
+
+st.caption(
+    "A promotion can increase streams while still creating a worse "
+    "listener experience. Guardrails check whether deeper engagement "
+    "improves or deteriorates."
+)
+
+guardrail_rows = []
+
+for metric_name, result in guardrail_results.items():
+
+    direction = (
+        "Better"
+        if (
+            (
+                metric_name == "Skip Rate"
+                and result["absolute_change"] < 0
+            )
+            or (
+                metric_name != "Skip Rate"
+                and result["absolute_change"] > 0
+            )
+        )
+        else "Worse"
+        if result["absolute_change"] != 0
+        else "No Change"
+    )
+
+    guardrail_rows.append(
+        {
+            "Metric": metric_name,
+            "Treatment": result["treatment_rate"],
+            "Control": result["control_rate"],
+            "Change": result["absolute_change"],
+            "P-value": result["p_value"],
+            "Significant": (
+                "Yes"
+                if result["significant"]
+                else "No"
+            ),
+            "Direction": direction,
+        }
+    )
+
+guardrail_df = pd.DataFrame(
+    guardrail_rows
+)
+
+st.dataframe(
+    guardrail_df.style.format(
+        {
+            "Treatment": "{:.2%}",
+            "Control": "{:.2%}",
+            "Change": "{:+.2%}",
+            "P-value": "{:.4f}",
+        }
+    ),
+    use_container_width=True,
+    hide_index=True,
+)
+
+skip_result = guardrail_results[
+    "Skip Rate"
+]
+
+positive_engagement = [
+    guardrail_results["Save Rate"],
+    guardrail_results["Repeat Listening"],
+    guardrail_results["Artist Follow Rate"],
+    guardrail_results["Playlist Add Rate"],
+]
+
+harmful_skip_change = (
+    skip_result["significant"]
+    and skip_result["absolute_change"] > 0
+)
+
+harmful_engagement_changes = any(
+    result["significant"]
+    and result["absolute_change"] < 0
+    for result in positive_engagement
+)
+
+if not harmful_skip_change and not harmful_engagement_changes:
+    st.success(
+        "No statistically significant guardrail deterioration was detected. "
+        "The stream lift does not appear to come at the expense of the "
+        "measured listener-engagement metrics."
+    )
+else:
+    st.warning(
+        "At least one guardrail shows statistically significant "
+        "deterioration. The promotion's stream lift should be interpreted "
+        "alongside the affected listener-engagement metric."
+    )
+
+with st.expander(
+    "How should I interpret guardrails?",
+    expanded=False,
+):
+    st.markdown("""
+**Skip Rate**
+
+Among listeners who started the track, how many skipped it?
+
+For this metric, **lower is better**.
+
+---
+
+**Save Rate**
+
+Among streams, how often did the listener save the track?
+
+Higher save rates suggest stronger interest than a stream alone.
+
+---
+
+**Repeat Listening**
+
+How often did a listener return to the track?
+
+Repeat listening can indicate longer-term engagement.
+
+---
+
+**Artist Follow Rate**
+
+How often did listening lead to following the artist?
+
+This connects promotion to artist-audience growth.
+
+---
+
+**Playlist Add Rate**
+
+How often did listeners add the promoted song to a playlist?
+
+This can indicate intent to return to the track later.
+
+---
+
+A strong promotion should ideally improve the primary metric while avoiding
+meaningful deterioration in these guardrails.
+""")
 
 # =========================================================
 # ONE COLLAPSIBLE METRIC GUIDE
@@ -872,6 +1040,84 @@ with tab1:
         funnel,
         use_container_width=True,
     )
+
+
+    st.subheader("Listener Retention")
+
+    st.caption(
+        "Among listeners who streamed a promoted track, this shows "
+        "how often they returned at later checkpoints."
+    )
+
+    retention_chart = px.line(
+        retention_df,
+        x="period",
+        y="retention_rate",
+        color="treatment_group",
+        markers=True,
+        category_orders={
+            "period": [
+                "7 Day",
+                "14 Day",
+                "30 Day",
+            ]
+        },
+        labels={
+            "period": "Retention Window",
+            "retention_rate": "Retention Rate",
+            "treatment_group": "Group",
+        },
+    )
+
+    retention_chart.update_yaxes(
+        tickformat=".0%"
+    )
+
+    style_chart(retention_chart)
+
+    st.plotly_chart(
+        retention_chart,
+        use_container_width=True,
+    )
+
+    st.markdown("#### Retention Lift")
+
+    st.dataframe(
+        retention_lift_df.style.format(
+            {
+                "treatment": "{:.2%}",
+                "control": "{:.2%}",
+                "absolute_lift": "{:+.2%}",
+                "relative_lift": "{:+.2%}",
+            }
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    with st.expander(
+        "How to interpret retention",
+        expanded=False,
+    ):
+        st.markdown("""
+**7-Day Retention**
+
+Whether a listener who streamed the track returned around the first week.
+
+**14-Day Retention**
+
+Measures whether engagement continues beyond the initial promotion period.
+
+**30-Day Retention**
+
+A stronger signal of longer-term listener interest.
+
+If treatment retention remains above control retention, promotion may be
+creating more than a temporary spike in streams.
+
+Retention should still be interpreted alongside saves, follows, playlist adds,
+and other engagement signals.
+""")
 
 # =========================================================
 # CAMPAIGNS
