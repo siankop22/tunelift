@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: raw
+    database: tunelift
+    schema: public
+
+    tables:
+      - name: listeners
+      - name: artists
+      - name: tracks
+      - name: campaigns
+      - name: experiment_events

@@ -1,0 +1,47 @@
+version: 2
+
+models:
+
+  - name: stg_listeners
+    columns:
+      - name: listener_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: stg_artists
+    columns:
+      - name: artist_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: stg_tracks
+    columns:
+      - name: track_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: stg_campaigns
+    columns:
+      - name: campaign_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: stg_experiment_events
+    columns:
+      - name: impression_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: treatment_group
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - treatment
+                  - control
