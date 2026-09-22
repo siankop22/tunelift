@@ -8,3 +8,24 @@ data/generated/*.csv
 target/
 dbt_packages/
 logs/
+
+# Local backups
+dashboard/app.before_*.py
+dashboard/app.broken.py
+dashboard/app.py.backup
+
+# Python
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# dbt generated files
+dbt_project/target/
+dbt_project/logs/
+dbt_project/dbt_packages/
+
+# Local secrets
+.env
+
+# Generated data
+data/generated/*.csv
