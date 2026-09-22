@@ -39,7 +39,7 @@ The interface uses a dark, music-streaming-inspired visual design.
 
 ## Architecture
 
-```text
+
 Synthetic Listener Events
           |
           v
