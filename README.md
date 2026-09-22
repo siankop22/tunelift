@@ -5,7 +5,7 @@
 
 ## Live Demo
 
-**[Open the TuneLift Interactive Dashboard →](https://tunelift-music-promotion.streamlit.app)**
+**[Open the TuneLift Interactive Dashboard →](https://tunelift-xqnz5ghgfesdhwwfotrzem.streamlit.app/)**
 
 Explore promotion experiments, incrementality, guardrails, retention,
 campaign performance, and listener segments in the live Streamlit application.
