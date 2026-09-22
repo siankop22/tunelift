@@ -15,6 +15,11 @@ sys.path.append(str(ROOT_DIR))
 
 from src.database import engine
 from src.experiment_stats import analyze_binary_experiment
+from src.experiment_health import (
+    experiment_power,
+    minimum_detectable_effect,
+    sample_ratio_mismatch,
+)
 
 st.set_page_config(
     page_title="TuneLift",
@@ -435,6 +440,26 @@ experiment_stats = analyze_binary_experiment(
     control_n=len(control),
 )
 
+srm_result = sample_ratio_mismatch(
+    treatment_n=len(treatment),
+    control_n=len(control),
+)
+
+achieved_power = experiment_power(
+    treatment_rate=treatment_rate,
+    control_rate=control_rate,
+    treatment_n=len(treatment),
+    control_n=len(control),
+)
+
+mde = minimum_detectable_effect(
+    baseline_rate=control_rate,
+    n_per_group=min(
+        len(treatment),
+        len(control),
+    ),
+)
+
 # =========================================================
 # CHART THEME
 # =========================================================
@@ -571,6 +596,64 @@ else:
         "The experiment does not provide enough statistical evidence "
         "to distinguish the observed treatment-control difference from "
         "random sampling variation at the 5% significance level."
+    )
+
+# =========================================================
+# EXPERIMENT HEALTH
+# =========================================================
+
+st.markdown("### Experiment Health")
+
+health1, health2, health3 = st.columns(3)
+
+health1.metric(
+    "Statistical Power",
+    f"{achieved_power:.0%}",
+)
+
+health2.metric(
+    "Minimum Detectable Effect",
+    f"{mde:.1%}",
+)
+
+health3.metric(
+    "Randomization Check",
+    "Review" if srm_result["has_srm"] else "Healthy",
+)
+
+with st.expander("What does experiment health mean?", expanded=False):
+
+    st.markdown("""
+**Statistical Power**
+
+The probability that the experiment can detect a real effect of the observed
+size.
+
+A commonly used target is **80% or higher**.
+
+---
+
+**Minimum Detectable Effect (MDE)**
+
+The smallest approximate change in stream conversion that this experiment can
+reliably detect at the chosen sample size.
+
+A smaller MDE means the experiment can detect more subtle product effects.
+
+---
+
+**Randomization Check**
+
+Treatment and control should receive roughly the expected share of traffic.
+
+TuneLift uses a sample-ratio-mismatch check to detect assignment imbalances.
+
+A serious imbalance can indicate problems with experiment assignment,
+instrumentation, or data collection.
+""")
+
+    st.caption(
+        f"SRM p-value: {srm_result['p_value']:.4f}"
     )
 
 # =========================================================
