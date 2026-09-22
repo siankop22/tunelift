@@ -2,6 +2,15 @@
 
 **Music Promotion Experimentation & Incrementality Platform**
 
+
+## Live Demo
+
+**[Open the TuneLift Interactive Dashboard →](https://tunelift-music-promotion.streamlit.app)**
+
+Explore promotion experiments, incrementality, guardrails, retention,
+campaign performance, and listener segments in the live Streamlit application.
+
+
 TuneLift is a product analytics and experimentation platform for measuring whether music promotion creates **incremental listener engagement**, not just additional exposure.
 
 It simulates a music-streaming promotion environment with treatment and control groups and analyzes the effect of promotion on streaming, saves, skips, repeat listening, artist follows, playlist adds, and long-term retention.
